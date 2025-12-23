@@ -1,0 +1,192 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #a8d8ea 0%, #aa96da 100%);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(230, 245, 250, 0.95));
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 15px 45px rgba(102, 150, 200, 0.15);
+    width: 100%;
+    max-width: 650px;
+    backdrop-filter: blur(10px);
+}
+
+h1 {
+    text-align: center;
+    background: linear-gradient(135deg, #6ba3d4 0%, #8b9dd4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 2.8em;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    margin-top: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.view-btn, .back-btn {
+    display: inline-block;
+    margin: 15px 0;
+    padding: 12px 25px;
+    background: linear-gradient(135deg, #7cb3d4 0%, #8b9dd4 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.view-btn:hover, .back-btn:hover {
+    background: linear-gradient(135deg, #6a9fb8 0%, #7a8bc0 100%);
+    box-shadow: 0 5px 15px rgba(122, 179, 212, 0.3);
+    transform: translateY(-2px);
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+}
+
+input, textarea, button {
+    margin: 8px 0;
+    padding: 12px 15px;
+    border: 2px solid #d4e4f0;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 1em;
+    transition: all 0.3s ease;
+}: linear-gradient(135deg, #7cb3d4 0%, #8b9dd4 100%);
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #6a9fb8 0%, #7a8bc0 100%);
+    box-shadow: 0 5px 15px rgba(122, 179, 212, 0.3);
+    transform: translateY(-2px);
+}
+
+button:active {
+    transform: translateY(0)(122, 179, 212, 0.2);
+}
+
+button {
+    background-color: #28a745;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #218838;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+li {
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.8), rgba(230, 245, 250, 0.8));
+    margin: 12px 0;
+    padding: 18px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 5px solid #7cb3d4;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 10px rgba(122, 179, 212, 0.1);
+}
+
+li:hover {
+    box-shadow: 0 5px 20px rgba(122, 179, 212, 0.2);
+    transform: translateX(5px);
+}
+
+.completed {
+    text-decoration: line-through;
+    color: #888;
+}
+
+.task-actions button {
+    margin-left: 5px;
+    padding: 5px 10px;
+    font-size: 0.8em;
+}
+
+.edit-form {
+    display: none;
+    margin-top: 10px;
+}
+
+.edit-form input, .edit-form textarea {
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+/* Notification Styles */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 4px;
+    color: white;
+    font-weight: bold;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-in-out;
+    max-width: 400px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.notification.success {
+    background-color: #28a745;
+}
+
+.notification.error {
+    background-color: #dc3545;
+}
+
+.notification.info {
+    background-color: #17a2b8;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+.notification.hide {
+    animation: slideOut 0.3s ease-in-out forwards;
+}
