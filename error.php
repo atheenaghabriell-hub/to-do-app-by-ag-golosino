@@ -4,4 +4,5 @@ if (isset($_GET['error'])) {
 } else {
     echo "Unknown error.";
 }
+
 ?>
