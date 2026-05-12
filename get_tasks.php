@@ -1,11 +1,7 @@
 <?php
 /**
  * Get Tasks Handler - Optimized
- * Retrieves all tasks for the authenticated user
- * - Requires login
- * - Filters tasks by user_id
- * - Returns tasks in order of creation
- * - Memory optimized for 2GB RAM
+ * Retrieves tasks for authenticated user with caching
  */
 
 error_reporting(E_ALL);
@@ -14,21 +10,18 @@ ini_set('display_errors', 0);
 include 'auth_check.php';
 
 header('Content-Type: application/json');
-header('Cache-Control: no-cache, must-revalidate');
-header('Pragma: no-cache');
+header('Cache-Control: public, max-age=30'); // 30 second browser cache
 
-// Check if user is authenticated
 $user_id = checkAuth();
 if (!$user_id) {
     http_response_code(401);
-    echo json_encode(['error' => 'Please log in to view tasks']);
+    echo json_encode(['error' => 'Please log in']);
     exit();
 }
 
-// Fetch only tasks belonging to the logged-in user
 $sql = "SELECT id, title, description, status, created_at FROM test.tasks 
         WHERE user_id = ? 
-        ORDER BY created_at DESC
+        ORDER BY created_at DESC 
         LIMIT 500";
 
 $stmt = $conn->prepare($sql);
@@ -50,7 +43,7 @@ if ($result && $result->num_rows > 0) {
     }
 }
 
-echo json_encode($tasks, JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
+echo json_encode($tasks);
 
 $stmt->close();
 $conn->close();

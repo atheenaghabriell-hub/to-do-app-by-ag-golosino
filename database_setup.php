@@ -1,12 +1,8 @@
 <?php
 /**
- * Database Setup Script with Admin Account Creation
+ * Database Setup Script
  * Run this file ONCE to create the necessary tables and admin account
  * Access it in your browser: http://localhost/to-do-app-by-ag-golosino/database_setup.php
- * 
- * Default Admin:
- * Username: admin123
- * Password: Admin_123
  */
 
 include 'db.php';
@@ -51,39 +47,43 @@ if ($result && $result->num_rows == 0) {
     $messages[] = "✓ Tasks table already has user_id column";
 }
 
-// Create admin account if it doesn't exist
+// Create admin account
 $admin_username = 'admin123';
 $admin_password = 'Admin_123';
-$admin_check = "SELECT id FROM test.users WHERE username = 'admin123' LIMIT 1";
-$admin_result = $conn->query($admin_check);
+$admin_hash = password_hash($admin_password, PASSWORD_DEFAULT, ['cost' => 10]);
 
-if ($admin_result && $admin_result->num_rows == 0) {
-    // Admin doesn't exist, create it
-    $admin_hash = password_hash($admin_password, PASSWORD_DEFAULT, ['cost' => 10]);
-    $admin_insert = "INSERT INTO test.users (username, password_hash) VALUES ('admin123', ?)";
-    $stmt = $conn->prepare($admin_insert);
+// Check if admin already exists
+$check_admin = "SELECT id FROM test.users WHERE username = ?";
+$stmt = $conn->prepare($check_admin);
+if ($stmt) {
+    $stmt->bind_param("s", $admin_username);
+    $stmt->execute();
+    $admin_exists = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
     
-    if ($stmt) {
-        $stmt->bind_param('s', $admin_hash);
-        if ($stmt->execute()) {
-            $messages[] = "✓ Admin account created successfully";
-            $messages[] = "&nbsp;&nbsp;Username: <strong>admin123</strong>";
-            $messages[] = "&nbsp;&nbsp;Password: <strong>Admin_123</strong>";
-        } else {
-            $messages[] = "✗ Error creating admin account: " . $stmt->error;
+    if (!$admin_exists) {
+        // Insert admin account
+        $insert_admin = "INSERT INTO test.users (username, password_hash) VALUES (?, ?)";
+        $stmt = $conn->prepare($insert_admin);
+        if ($stmt) {
+            $stmt->bind_param("ss", $admin_username, $admin_hash);
+            if ($stmt->execute()) {
+                $messages[] = "✓ Admin account created (username: admin123, password: Admin_123)";
+            } else {
+                $messages[] = "✗ Error creating admin account: " . $stmt->error;
+            }
+            $stmt->close();
         }
-        $stmt->close();
+    } else {
+        $messages[] = "✓ Admin account already exists";
     }
-} else {
-    $messages[] = "✓ Admin account already exists";
 }
 
 $setup_complete = true;
-
+$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -96,33 +96,28 @@ $setup_complete = true;
             padding: 20px;
             background-color: #f5f5f5;
         }
-
         .container {
             background-color: white;
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-
         h1 {
             color: #333;
             border-bottom: 3px solid #007bff;
             padding-bottom: 10px;
         }
-
         .message {
             margin: 10px 0;
             padding: 10px;
             border-left: 4px solid #28a745;
             background-color: #f0f8f4;
         }
-
         .message.error {
             border-left-color: #dc3545;
             background-color: #fef5f5;
             color: #721c24;
         }
-
         .success-info {
             background-color: #d4edda;
             border: 1px solid #c3e6cb;
@@ -131,22 +126,19 @@ $setup_complete = true;
             border-radius: 4px;
             margin: 20px 0;
         }
-
         .admin-info {
             background-color: #fff3cd;
-            border: 1px solid #ffeeba;
+            border: 1px solid #ffeaa7;
             color: #856404;
             padding: 15px;
             border-radius: 4px;
             margin: 20px 0;
         }
-
         .action-links {
             margin-top: 20px;
             padding-top: 20px;
             border-top: 1px solid #ddd;
         }
-
         .action-links a {
             display: inline-block;
             margin-right: 10px;
@@ -155,43 +147,40 @@ $setup_complete = true;
             color: white;
             text-decoration: none;
             border-radius: 4px;
-            cursor: pointer;
         }
-
         .action-links a:hover {
             background-color: #0056b3;
         }
     </style>
 </head>
-
 <body>
     <div class="container">
         <h1>Database Setup</h1>
-
+        
         <?php foreach ($messages as $msg): ?>
             <div class="message <?php echo strpos($msg, '✗') === 0 ? 'error' : ''; ?>">
-                <?php echo $msg; ?>
+                <?php echo htmlspecialchars($msg); ?>
             </div>
         <?php endforeach; ?>
 
         <?php if ($setup_complete): ?>
             <div class="success-info">
                 <h3>✓ Setup Complete!</h3>
-                <p>Your database has been configured with the users table and tasks table modifications.</p>
+                <p>Your database has been configured successfully.</p>
             </div>
+            
             <div class="admin-info">
                 <h3>Admin Account Created</h3>
                 <p><strong>Username:</strong> admin123</p>
                 <p><strong>Password:</strong> Admin_123</p>
-                <p style="margin-top: 10px; font-size: 0.9em;">⚠️ Change this password after first login!</p>
+                <p style="color: #d63031; font-weight: bold; margin-top: 10px;">⚠ IMPORTANT: Change this password after first login!</p>
             </div>
         <?php endif; ?>
 
         <div class="action-links">
-            <a href="login.html">Login</a>
+            <a href="login.html">Go to Login</a>
             <a href="index.php">Go to App</a>
         </div>
     </div>
 </body>
-
 </html>

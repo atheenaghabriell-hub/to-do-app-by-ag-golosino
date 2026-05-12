@@ -1,11 +1,29 @@
-/**
- * Optimized Task Management Script
- * Fixes hash/refresh issues and reduces memory usage for 2GB RAM systems
- */
+// Cache system for improved performance on low-resource systems
+const TaskCache = {
+    data: null,
+    timestamp: null,
+    duration: 30000, // 30 seconds
+    
+    isValid() {
+        return this.data !== null && (Date.now() - this.timestamp) < this.duration;
+    },
+    
+    get() {
+        return this.isValid() ? this.data : null;
+    },
+    
+    set(data) {
+        this.data = data;
+        this.timestamp = Date.now();
+    },
+    
+    clear() {
+        this.data = null;
+        this.timestamp = null;
+    }
+};
 
-let taskCache = null;
-let cacheTimestamp = 0;
-const CACHE_DURATION = 30000; // Cache for 30 seconds
+let loadTasksTimeout;
 
 document.addEventListener('DOMContentLoaded', function() {
     const taskForm = document.getElementById('taskForm');
@@ -18,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Notification system - optimized for memory
+// Notification system
 function showNotification(message, type = 'info', duration = 4000) {
     const container = document.getElementById('notificationContainer');
     if (!container) return;
@@ -28,24 +46,22 @@ function showNotification(message, type = 'info', duration = 4000) {
     notification.textContent = message;
     container.appendChild(notification);
 
-    const timeoutId = setTimeout(() => {
+    setTimeout(() => {
         notification.classList.add('hide');
         setTimeout(() => {
-            if (container.contains(notification)) {
-                container.removeChild(notification);
-            }
+            try { container.removeChild(notification); } catch(e) {}
         }, 300);
     }, duration);
 }
 
-// Load tasks with caching for low-memory systems
 function loadTasks() {
     const loading = document.getElementById('loading');
-    const now = Date.now();
     
-    // Use cache if available and fresh
-    if (taskCache && (now - cacheTimestamp) < CACHE_DURATION) {
-        renderTasks(taskCache);
+    // Check cache first
+    const cachedData = TaskCache.get();
+    if (cachedData !== null) {
+        renderTasks(cachedData);
+        if (loading) loading.style.display = 'none';
         return;
     }
     
@@ -53,32 +69,24 @@ function loadTasks() {
     
     fetch('get_tasks.php')
         .then(response => {
-            if (response.status === 401) {
-                window.location.href = 'login.html';
-                return null;
-            }
+            if (!response.ok) throw new Error('Network response was not ok');
             return response.json();
         })
         .then(data => {
             if (loading) loading.style.display = 'none';
-            if (!data) return;
-            
-            if (data.error) {
-                showNotification('✗ Error: ' + data.error, 'error');
-                return;
+            if (data && !data.error) {
+                TaskCache.set(data);
+                renderTasks(data);
+            } else {
+                showNotification('✗ Error loading tasks', 'error');
             }
-            
-            taskCache = data;
-            cacheTimestamp = Date.now();
-            renderTasks(data);
         })
         .catch(error => {
             if (loading) loading.style.display = 'none';
-            showNotification('✗ Network error: Could not load tasks', 'error');
+            showNotification('✗ Network error', 'error');
         });
 }
 
-// Separate rendering logic to reduce memory overhead
 function renderTasks(data) {
     const taskList = document.getElementById('taskList');
     if (!taskList) return;
@@ -93,66 +101,75 @@ function renderTasks(data) {
     }
     
     data.forEach(task => {
-        const li = document.createElement('li');
-        li.className = task.status === 'completed' ? 'completed' : '';
-        li.innerHTML = '';
-
-        const taskDiv = document.createElement('div');
-        taskDiv.innerHTML = `
-            <strong>${escapeHtml(task.title)}</strong>
-            <p>${escapeHtml(task.description)}</p>
-            <small>Created: ${new Date(task.created_at).toLocaleString()}</small>
-        `;
-
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'task-actions';
-        
-        const toggleBtn = document.createElement('button');
-        toggleBtn.textContent = task.status === 'completed' ? 'Mark Pending' : 'Mark Complete';
-        toggleBtn.onclick = () => toggleTask(task.id, task.status);
-        
-        const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edit';
-        editBtn.onclick = () => showEditForm(task.id);
-        
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = 'Delete';
-        deleteBtn.onclick = () => deleteTask(task.id);
-        
-        actionsDiv.appendChild(toggleBtn);
-        actionsDiv.appendChild(editBtn);
-        actionsDiv.appendChild(deleteBtn);
-
-        const editForm = document.createElement('form');
-        editForm.className = 'edit-form';
-        editForm.id = 'editForm' + task.id;
-        editForm.style.display = 'none';
-        editForm.innerHTML = `
-            <input type="text" value="${escapeHtml(task.title)}" required>
-            <textarea>${escapeHtml(task.description)}</textarea>
-            <button type="submit">Save</button>
-            <button type="button">Cancel</button>
-        `;
-        
-        editForm.querySelector('button[type="button"]').onclick = () => hideEditForm(task.id);
-        editForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            saveEdit(task.id);
-        });
-
-        li.appendChild(taskDiv);
-        li.appendChild(actionsDiv);
-        li.appendChild(editForm);
-        taskList.appendChild(li);
+        createTaskElement(task, taskList);
     });
 }
 
-// Security function to prevent XSS
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+function createTaskElement(task, taskList) {
+    const li = document.createElement('li');
+    li.className = task.status === 'completed' ? 'completed' : '';
+
+    const taskDiv = document.createElement('div');
+    const strong = document.createElement('strong');
+    strong.textContent = escapeHtml(task.title);
+    const p = document.createElement('p');
+    p.textContent = escapeHtml(task.description);
+    const small = document.createElement('small');
+    small.textContent = 'Created: ' + new Date(task.created_at).toLocaleString();
+    taskDiv.appendChild(strong);
+    taskDiv.appendChild(p);
+    taskDiv.appendChild(small);
+
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'task-actions';
+    
+    const toggleBtn = document.createElement('button');
+    toggleBtn.textContent = task.status === 'completed' ? 'Mark Pending' : 'Mark Complete';
+    toggleBtn.onclick = () => toggleTask(task.id, task.status);
+    
+    const editBtn = document.createElement('button');
+    editBtn.textContent = 'Edit';
+    editBtn.onclick = () => showEditForm(task.id);
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.onclick = () => deleteTask(task.id);
+    
+    actionsDiv.appendChild(toggleBtn);
+    actionsDiv.appendChild(editBtn);
+    actionsDiv.appendChild(deleteBtn);
+
+    const editForm = document.createElement('form');
+    editForm.className = 'edit-form';
+    editForm.id = 'editForm' + task.id;
+    editForm.style.display = 'none';
+    
+    const editInput = document.createElement('input');
+    editInput.type = 'text';
+    editInput.value = escapeHtml(task.title);
+    editInput.required = true;
+    
+    const editTextarea = document.createElement('textarea');
+    editTextarea.textContent = escapeHtml(task.description);
+    
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'submit';
+    saveBtn.textContent = 'Save';
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.onclick = () => hideEditForm(task.id);
+    
+    editForm.appendChild(editInput);
+    editForm.appendChild(editTextarea);
+    editForm.appendChild(saveBtn);
+    editForm.appendChild(cancelBtn);
+
+    li.appendChild(taskDiv);
+    li.appendChild(actionsDiv);
+    li.appendChild(editForm);
+    taskList.appendChild(li);
 }
 
 function addTask() {
@@ -170,9 +187,7 @@ function addTask() {
 
     fetch('add_task.php', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}`
     })
     .then(response => response.json())
@@ -182,16 +197,17 @@ function addTask() {
         if (result.success) {
             showNotification('✓ Task saved successfully!', 'success');
             document.getElementById('taskForm').reset();
-            taskCache = null; // Clear cache
-            loadTasks();
+            TaskCache.clear();
+            clearTimeout(loadTasksTimeout);
+            loadTasksTimeout = setTimeout(loadTasks, 100);
         } else {
-            showNotification('✗ Error: ' + (result.error || 'Failed to add task'), 'error');
+            showNotification('✗ Error: ' + (result.error || 'Failed'), 'error');
         }
     })
     .catch(error => {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Add Task';
-        showNotification('✗ Network error: Could not save task', 'error');
+        showNotification('✗ Network error', 'error');
     });
 }
 
@@ -200,29 +216,32 @@ function toggleTask(id, currentStatus) {
 
     fetch('toggle_task.php', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `id=${id}&status=${newStatus}`
     })
     .then(response => response.json())
     .then(result => {
         if (result.success) {
             showNotification('✓ Task marked ' + newStatus + '!', 'success');
-            taskCache = null; // Clear cache
-            loadTasks();
+            TaskCache.clear();
+            clearTimeout(loadTasksTimeout);
+            loadTasksTimeout = setTimeout(loadTasks, 100);
         } else {
-            showNotification('✗ Error: ' + (result.error || 'Failed to update task'), 'error');
+            showNotification('✗ Error: ' + (result.error || 'Failed'), 'error');
         }
     })
-    .catch(error => {
-        showNotification('✗ Network error: Could not update task', 'error');
-    });
+    .catch(error => showNotification('✗ Network error', 'error'));
 }
 
 function showEditForm(id) {
     const form = document.getElementById(`editForm${id}`);
-    if (form) form.style.display = 'block';
+    if (form) {
+        form.style.display = 'block';
+        form.onsubmit = function(e) {
+            e.preventDefault();
+            saveEdit(id);
+        };
+    }
 }
 
 function hideEditForm(id) {
@@ -244,48 +263,50 @@ function saveEdit(id) {
 
     fetch('edit_task.php', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `id=${id}&title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}`
     })
     .then(response => response.json())
     .then(result => {
         if (result.success) {
-            showNotification('✓ Task updated successfully!', 'success');
+            showNotification('✓ Task updated!', 'success');
             hideEditForm(id);
-            taskCache = null; // Clear cache
-            loadTasks();
+            TaskCache.clear();
+            clearTimeout(loadTasksTimeout);
+            loadTasksTimeout = setTimeout(loadTasks, 100);
         } else {
-            showNotification('✗ Error: ' + (result.error || 'Failed to update task'), 'error');
+            showNotification('✗ Error: ' + (result.error || 'Failed'), 'error');
         }
     })
-    .catch(error => {
-        showNotification('✗ Network error: Could not update task', 'error');
-    });
+    .catch(error => showNotification('✗ Network error', 'error'));
 }
 
 function deleteTask(id) {
     if (confirm('Are you sure you want to delete this task?')) {
         fetch('delete_task.php', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: `id=${id}`
         })
         .then(response => response.json())
         .then(result => {
             if (result.success) {
-                showNotification('✓ Task deleted successfully!', 'success');
-                taskCache = null; // Clear cache
-                loadTasks();
+                showNotification('✓ Task deleted!', 'success');
+                TaskCache.clear();
+                clearTimeout(loadTasksTimeout);
+                loadTasksTimeout = setTimeout(loadTasks, 100);
             } else {
-                showNotification('✗ Error: ' + (result.error || 'Failed to delete task'), 'error');
+                showNotification('✗ Error: ' + (result.error || 'Failed'), 'error');
             }
         })
-        .catch(error => {
-            showNotification('✗ Network error: Could not delete task', 'error');
-        });
+        .catch(error => showNotification('✗ Network error', 'error'));
     }
+}
+
+// XSS Prevention - Escape HTML special characters
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
