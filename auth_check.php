@@ -1,6 +1,6 @@
 <?php
 /**
- * Authentication Check Helper
+ * Authentication Check Helper - Optimized for Performance
  * Include this file at the top of any page that requires authentication
  * It will verify the session token and redirect to login if not authenticated
  */
@@ -28,9 +28,14 @@ function checkAuth()
     $token = $_SESSION['token'];
     $user_id = intval($_SESSION['user_id']);
 
-    // Verify token is valid (basic check - in security tokens might be stored in DB)
+    // Verify token is valid
     if (empty($token) || $user_id <= 0) {
-        // Clear session
+        session_destroy();
+        return false;
+    }
+
+    // Check session timeout
+    if (isset($_SESSION['login_time']) && (time() - $_SESSION['login_time']) > 3600) {
         session_destroy();
         return false;
     }
@@ -65,7 +70,7 @@ function getCurrentUser()
     $user_id = intval($_SESSION['user_id']);
 
     // Get user details from database
-    $stmt = $conn->prepare("SELECT id, username FROM test.users WHERE id = ?");
+    $stmt = $conn->prepare("SELECT id, username FROM test.users WHERE id = ? LIMIT 1");
     if (!$stmt) {
         return false;
     }

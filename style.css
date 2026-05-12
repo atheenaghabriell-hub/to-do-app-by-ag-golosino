@@ -4,10 +4,15 @@
     box-sizing: border-box;
 }
 
+html, body {
+    height: 100%;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #a8d8ea 0%, #aa96da 100%);
     padding: 0;
+    min-height: 100vh;
 }
 
 /* User Bar - Authentication Info */
@@ -51,6 +56,8 @@ body {
     font-size: 0.95em;
     font-weight: 500;
     transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
 }
 
 .nav-link {
@@ -66,8 +73,6 @@ body {
 .logout-btn {
     background-color: #dc3545;
     color: white;
-    cursor: pointer;
-    border: none;
 }
 
 .logout-btn:hover {
@@ -84,7 +89,6 @@ body {
     width: 100%;
     max-width: 650px;
     margin: 40px auto;
-    backdrop-filter: blur(10px);
 }
 
 h1 {
@@ -131,6 +135,7 @@ textarea:focus {
 textarea {
     resize: vertical;
     min-height: 80px;
+    font-family: inherit;
 }
 
 button {
@@ -179,12 +184,14 @@ li strong {
     font-size: 1.2em;
     color: #333;
     margin-bottom: 5px;
+    word-wrap: break-word;
 }
 
 li p {
     color: #666;
     margin: 5px 0;
     font-size: 0.95em;
+    word-wrap: break-word;
 }
 
 li small {
@@ -208,6 +215,7 @@ li.completed {
     gap: 10px;
     margin-top: 12px;
     justify-content: flex-start;
+    flex-wrap: wrap;
 }
 
 .task-actions button {
@@ -215,6 +223,7 @@ li.completed {
     font-size: 0.85em;
     margin: 0;
     flex: 1;
+    min-width: 80px;
     max-width: 100px;
 }
 
@@ -248,6 +257,7 @@ li.completed {
     top: 80px;
     right: 20px;
     z-index: 1000;
+    max-width: 400px;
 }
 
 .notification {
@@ -257,8 +267,8 @@ li.completed {
     font-weight: 600;
     margin-bottom: 10px;
     animation: slideIn 0.3s ease-in-out;
-    max-width: 400px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    word-wrap: break-word;
 }
 
 .notification.success {
@@ -329,6 +339,10 @@ li.completed {
         padding: 20px;
     }
     
+    h1 {
+        font-size: 2em;
+    }
+    
     .task-actions {
         flex-direction: column;
     }
@@ -340,9 +354,26 @@ li.completed {
     #notificationContainer {
         right: 10px;
         left: 10px;
+        top: 70px;
     }
     
     .notification {
         max-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        margin: 10px 5px;
+        padding: 15px;
+    }
+    
+    h1 {
+        font-size: 1.5em;
+        margin-bottom: 10px;
+    }
+    
+    .user-bar {
+        padding: 10px;
     }
 }

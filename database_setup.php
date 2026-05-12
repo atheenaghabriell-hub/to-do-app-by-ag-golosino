@@ -1,8 +1,12 @@
 <?php
 /**
- * Database Setup Script
- * Run this file ONCE to create the necessary tables
+ * Database Setup Script with Admin Account Creation
+ * Run this file ONCE to create the necessary tables and admin account
  * Access it in your browser: http://localhost/to-do-app-by-ag-golosino/database_setup.php
+ * 
+ * Default Admin:
+ * Username: admin123
+ * Password: Admin_123
  */
 
 include 'db.php';
@@ -45,6 +49,33 @@ if ($result && $result->num_rows == 0) {
     }
 } else {
     $messages[] = "✓ Tasks table already has user_id column";
+}
+
+// Create admin account if it doesn't exist
+$admin_username = 'admin123';
+$admin_password = 'Admin_123';
+$admin_check = "SELECT id FROM test.users WHERE username = 'admin123' LIMIT 1";
+$admin_result = $conn->query($admin_check);
+
+if ($admin_result && $admin_result->num_rows == 0) {
+    // Admin doesn't exist, create it
+    $admin_hash = password_hash($admin_password, PASSWORD_DEFAULT, ['cost' => 10]);
+    $admin_insert = "INSERT INTO test.users (username, password_hash) VALUES ('admin123', ?)";
+    $stmt = $conn->prepare($admin_insert);
+    
+    if ($stmt) {
+        $stmt->bind_param('s', $admin_hash);
+        if ($stmt->execute()) {
+            $messages[] = "✓ Admin account created successfully";
+            $messages[] = "&nbsp;&nbsp;Username: <strong>admin123</strong>";
+            $messages[] = "&nbsp;&nbsp;Password: <strong>Admin_123</strong>";
+        } else {
+            $messages[] = "✗ Error creating admin account: " . $stmt->error;
+        }
+        $stmt->close();
+    }
+} else {
+    $messages[] = "✓ Admin account already exists";
 }
 
 $setup_complete = true;
@@ -101,6 +132,15 @@ $setup_complete = true;
             margin: 20px 0;
         }
 
+        .admin-info {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
         .action-links {
             margin-top: 20px;
             padding-top: 20px;
@@ -115,6 +155,7 @@ $setup_complete = true;
             color: white;
             text-decoration: none;
             border-radius: 4px;
+            cursor: pointer;
         }
 
         .action-links a:hover {
@@ -129,7 +170,7 @@ $setup_complete = true;
 
         <?php foreach ($messages as $msg): ?>
             <div class="message <?php echo strpos($msg, '✗') === 0 ? 'error' : ''; ?>">
-                <?php echo htmlspecialchars($msg); ?>
+                <?php echo $msg; ?>
             </div>
         <?php endforeach; ?>
 
@@ -137,17 +178,16 @@ $setup_complete = true;
             <div class="success-info">
                 <h3>✓ Setup Complete!</h3>
                 <p>Your database has been configured with the users table and tasks table modifications.</p>
-                <p><strong>Next Steps:</strong></p>
-                <ul>
-                    <li>Navigate to the login page to create your first account</li>
-                    <li>Register a new user with a username and password</li>
-                    <li>Start managing your tasks!</li>
-                </ul>
+            </div>
+            <div class="admin-info">
+                <h3>Admin Account Created</h3>
+                <p><strong>Username:</strong> admin123</p>
+                <p><strong>Password:</strong> Admin_123</p>
+                <p style="margin-top: 10px; font-size: 0.9em;">⚠️ Change this password after first login!</p>
             </div>
         <?php endif; ?>
 
         <div class="action-links">
-            <a href="register.html">Register Account</a>
             <a href="login.html">Login</a>
             <a href="index.php">Go to App</a>
         </div>
